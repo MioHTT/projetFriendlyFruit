@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>friendlyFruits</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v1.11.1/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v1.11.1/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://npmcdn.com/@turf/turf@5.1.6/turf.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename="css/mapbox_js.css") }}">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script>
+        {% if areas is defined and areas %}
+        // var areas = {{ areas }};
+        var areas = {{ areas | tojson }};
+
+        {% endif %}
+        function getFolder(e) {
+            var files = e.target.files;
+            var path = files[0].webkitRelativePath;
+            var Folder = path.split("/");
+            alert(Folder[0]);
+        }
+
+        function nouvTraitement() {
+            var dirPath = window.location.href
+            fullPath = dirPath.split("display_prediction")[0];
+            console.log(fullPath)
+            window.location = fullPath;
+        }
+    </script>
+    <script src="{{ url_for('static', filename="js/mapbox_js.js") }}"></script>
+
+</head>
+
+<body>
+        <!-- <input type="button" onclick="getScreenshot(event)" />
+        <input type="submit"> -->
+    <div id="count_areas"></div>
+    <br>
+    <form>
+    <button type="button" onclick="nouvTraitement()" class="btn btn-secondary">Nouveau traitement</button>
+    </form>
+    <div id="map-container">
+        <div id="map"></div>
+        <pre id="features">
+            <div id="distance-info"></div>
+            <div id="features-info"></div>
+        </pre>
+    </div>
+</body>
+
+</html>

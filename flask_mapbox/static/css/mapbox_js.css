@@ -1,0 +1,50 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+#map {
+    position: absolute;
+    top: 20%;
+    bottom: 0;
+    width: 100%;
+}
+
+#response {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+}
+
+#features {
+    width: 22%;
+    position: fixed;
+    top: 20%;
+    white-space:normal;
+    word-break: break-all;
+    word-wrap: break-word;
+    right:1%;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    }
+#map canvas {
+    cursor: crosshair;
+}
+
+.distance-container {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1;
+}
+     
+.distance-container > * {
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    font-size: 11px;
+    line-height: 18px;
+    display: block;
+    margin: 0;
+    padding: 5px 10px;
+    border-radius: 3px;
+}

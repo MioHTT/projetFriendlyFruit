@@ -1,0 +1,202 @@
+<html lang="en">
+
+<head>
+    <title>Projet Friendly Fruit</title>
+    <meta charset="utf-8">
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"> -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename="css/preprocessing.css") }}">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script>
+        var xhr;
+
+        function start_over() {
+            $('button').prop('disabled', true);
+            $(".btn-group").children('label').addClass('disabled')
+            $('input[type="radio"]:checked').attr('id')
+            $('input[type="radio"]:checked').parent().css('background-color','#0062cc')
+            console.log()
+            $.ajax({
+                url: '/start_over',
+                timeout: 1000,
+                success: resize()
+            });
+        }
+
+        function worker_resize() {
+            $.ajax({
+                url: '/progress_resize',
+                complete: function (data) {
+                    // Schedule the next request when the current one's complete
+                    $('#resize_div').css('width', data.responseText + '%').attr('aria-valuenow', data.responseText);
+                    $('#resize_span').text(data.responseText + '%');
+                    if (data.responseText != 100) {
+                        setTimeout(worker_resize, 2000);
+                    } else {
+                        stack()
+                    }
+                },
+            });
+        }
+
+        function resize() {
+            worker_resize();
+            $.ajax({
+                url: '/resize_img',
+                timeout: 1000,
+                success: function (data) {
+                    console.log(data)
+                }
+            });
+        }
+
+        function worker_stack() {
+            $.ajax({
+                url: '/progress_stack',
+                complete: function (data) {
+                    // Schedule the next request when the current one's complete
+                    $('#stack_div').css('width', data.responseText + '%').attr('aria-valuenow', data.responseText);
+                    $('#stack_span').text(data.responseText + '%');
+                    if (data.responseText != 100) {
+                        setTimeout(worker_stack, 2000);
+                    } else {
+                        clip()
+                    }
+                },
+            });
+        }
+
+        function stack() {
+            worker_stack();
+            $.ajax({
+                url: '/stack_img',
+                timeout: 1000,
+                success: function (data) {
+                    console.log(data)
+                }
+            });
+        }
+
+        function worker_clip() {
+            $.ajax({
+                url: '/progress_clip',
+                complete: function (data) {
+                    console.log(data)
+                    // Schedule the next request when the current one's complete
+                    $('#clip_div').css('width', data.responseText + '%').attr('aria-valuenow', data.responseText);
+                    $('#clip_span').text(data.responseText + '%');
+                    if (data.responseText != 100) {
+                        setTimeout(worker_clip, 2000);
+                    } else {
+                        predict()
+                    }
+                },
+            });
+        }
+
+        function clip() {
+            if (xhr && xhr.readyState != 4) {
+                xhr.abort();
+            }
+            worker_clip();
+            xhr = $.ajax({
+                url: '/clip_img',
+                timeout: 1000,
+                success: function (data) {
+                    console.log(data)
+                }
+            });
+        };
+
+        function display_prediction() {
+            var dirPath = window.location.href
+            fullPath = dirPath + "display_prediction";
+            window.location = fullPath;
+        }
+
+        function predict() {
+            if (xhr && xhr.readyState != 4) {
+                xhr.abort();
+            }
+            worker_predict();
+            xhr = $.ajax({
+                url: '/prediction',
+                timeout: 1000,
+                success: function (data) {
+                    console.log(data)
+                }
+            });
+        };
+        function worker_predict() {
+            $.ajax({
+                url: '/progress_predict',
+                complete: function (data) {
+                    console.log(data)
+                    // Schedule the next request when the current one's complete
+                    $('#predict_div').css('width', data.responseText + '%').attr('aria-valuenow', data.responseText);
+                    $('#predict_span').text(data.responseText + '%');
+                    if (data.responseText != 100) {
+                        setTimeout(worker_predict, 2000);
+                    } else {
+                        display_prediction()
+                    }
+                },
+            });
+        }
+
+    </script>
+
+</head>
+
+<body>
+    <div id="fenetre">
+    <h1>Traitements</h1>
+    <br>
+    <br>
+    <h2>Redimensionnement</h2>
+    <div class="progress" style="width: 750px; height: 22px; margin: 10 auto">
+        <div id="resize_div" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0"
+            aria-valuemin="0" aria-valuemax="100" style="width: 0%; color: black;">
+            <span id="resize_span" class="progress-bar-label">0%</span>
+        </div>
+    </div>
+
+    <h2>Empilement</h2>
+    <div class="progress" style="width: 750px; height: 22px; margin: 10 auto">
+        <div id="stack_div" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0"
+            aria-valuemin="0" aria-valuemax="100" style="width: 0%; color: black;">
+            <span id="stack_span" class="progress-bar-label">0%</span>
+        </div>
+    </div>
+
+    <h2>Découpage </h2>
+    <div class="progress" style="width: 750px; height: 22px; margin: 10 auto">
+        <div id="clip_div" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0"
+            aria-valuemin="0" aria-valuemax="100" style="width: 0%; color: black;">
+            <span id="clip_span" class="progress-bar-label">0%</span>
+        </div>
+    </div>
+
+    <h2>Prédiction </h2>
+    <div class="progress" style="width: 750px; height: 22px; margin: 10 auto">
+        <div id="predict_div" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0"
+            aria-valuemin="0" aria-valuemax="100" style="width: 0%; color: black;">
+            <span id="predict_span" class="progress-bar-label">0%</span>
+        </div>
+    </div>
+    <button type="button" onclick="start_over()" class="btn btn-primary" >Démarrer</button>
+    <div class="btn-group btn-group-toggle" data-toggle="buttons">
+        <label class="btn btn-primary active">
+          <input type="radio" name="options" id="WD" autocomplete="off" checked> WD
+        </label>
+        <label class="btn btn-primary">
+          <input type="radio" name="options" id="WD + OW" autocomplete="off"> WD + OW
+        </label>
+    </div>
+
+</div>
+</body>
+
+</html>
