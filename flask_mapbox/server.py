@@ -32,6 +32,7 @@ IMG_HEIGHT_16 = 128
 IMG_WIDTH_16 = 160
 NB_CHANNELS = 7
 
+#architecture du projet 
 baseFolder = "../data/preprocessing/"
 clippedImagesFolder = '../data/preprocessing/clippedImages/16/'
 datasetFolder = '../data/images/'
@@ -40,6 +41,7 @@ resizedImagesFolder = "../data/preprocessing/resizedImages/"
 stackedImagesFolder = "../data/preprocessing/stackedImages/" 
 modelPath = "../data/model/model_WD.h5"
 
+# variables globales d'avancement des traitements
 clipDone = False
 writingDone = False
 predictProgress = 0
@@ -50,26 +52,29 @@ app.config.from_object(__name__)
 app.config.from_envvar('APP_CONFIG_FILE', silent=True)
 MAPBOX_ACCESS_KEY = 'sk.eyJ1IjoiZnJpZW5kbHlmcnVpdHMxIiwiYSI6ImNrY3VoazNqeTBqeDkycnQyODlrbXBlZmgifQ.BqVVTNvgJSmxPLx7bV6JWA'
 
-
+# page des traitements
 @app.route('/')
 def preprocessing():
     return render_template('preprocessing.html')
 
+# page cherchee a l'activation du bouton de lancement du traitement
 @app.route('/start_over')
 def start_over():
     clipFolder = '../data/preprocessing/clippedImages/'
     imagesFolder = os.path.join(clippedImagesFolder,'images')
     dirPath = baseFolder
+    #suppression des dossiers si il y a eu un traitement precedent
     if os.path.exists(dirPath) and os.path.isdir(dirPath):
         print(dirPath)
         shutil.rmtree(dirPath, ignore_errors=True)
     dirsToCreate = [resizedImagesFolder,stackedImagesFolder,clipFolder,clippedImagesFolder,imagesFolder] 
-    print("create")
+    #cration des dossiers du traitement du projet
     for dirToCreate in dirsToCreate:
         print(dirToCreate)
         os.makedirs(dirToCreate)
     return "ok"
 
+#phase de redimensionnement
 @app.route('/resize_img')
 def resize_img():
     files = [f for f in os.listdir(datasetFolder) if '.tif' in f]
@@ -80,22 +85,25 @@ def resize_img():
         if "nm" in file:
             multibandImages.append(file)
         else :
+            #copie des fichiers aux bonnes dimensions
             copyfile(
                 os.path.join(datasetFolder, file),
                 os.path.join(resizedImagesFolder, file)
             )
+    #parallelisation de la fonction de resize
     pool.map(resizeImages,multibandImages)
     pool.close()
     return str(200)
-    
+
+# fonction de progression du redimensionnement    
 @app.route('/progress_resize')
 def progress_resize():
     resizedFiles = [f for f in os.listdir(resizedImagesFolder) if '.tif' in f]
     files = [f for f in os.listdir(datasetFolder) if '.tif' in f]
-
+    # evaluation des images traitees par rapport au total des images
     return str(int(100 * (len(resizedFiles)/len(files))))
 
-
+#fonction d empilement des images
 @app.route('/stack_img')
 def stack_img():
     pool = Pool()
@@ -119,16 +127,17 @@ def stack_img():
     pool.close()
     return "ok"
 
+#progression des empilements
 @app.route('/progress_stack')
 def progress_stack():
 
     stackImages = [f for f in os.listdir(stackedImagesFolder) if '.tif' in f]
     resizedFiles = [f for f in os.listdir(resizedImagesFolder) if '.tif' in f]
-
+    # evaluation des images traitees par rapport au total des images
     return str(int(700 * (len(stackImages))/len(resizedFiles)))
 
 
-
+#fonction de prediction
 @app.route('/prediction')
 def prediction():
     global writingDone
@@ -143,11 +152,13 @@ def prediction():
     writingDone = True
     return "ok"
 
+#fonction d affichage de la prediction
 @app.route('/display_prediction')
 def dispPrediction():
+    # chargement des zones de deficit hydrique
     with open(os.path.join(clippedImagesFolder,'areas.txt')) as f:
         areas = json.load(f)
-    print(areas)
+    # rendu de la carte avec les zones hydriques
     return render_template(
         'mapbox_js.html', 
         ACCESS_KEY=MAPBOX_ACCESS_KEY,
@@ -185,8 +196,10 @@ def resizeImages(imageName):
         elif ("730nm" in imageName):   
             cropped = image[0:len(image) - 16,72:len(image[0])]
         elif ("850nm" in imageName):   
-            cropped = image[0:len(image) - 45,110:len(image[0])]    
+            cropped = image[0:len(image) - 45,110:len(image[0])]  
+        #redimensionnement final  
         resized = resize(cropped, (IMG_HEIGHT_RAW,IMG_WIDTH_RAW),preserve_range=True)
+        #enregistrement de l image resultante
         tiff.imsave(os.path.join(resizedImagesFolder,imageName),resized.astype(np.uint16))
     except tifffile.tifffile.TiffFileError:
         print(imageName)
@@ -201,16 +214,18 @@ def stackImages(imagesToStack):
         except:
             print(imageName)
         bands_data.append(image)
-    #empilement des bandes
     try :
+        #empilement des bandes
         stackedImage = np.dstack((bands_data[0],bands_data[1],bands_data[2],bands_data[3],bands_data[4],bands_data[5],bands_data[6]))
+        #enregistrement de l image resultante
         tiff.imsave(os.path.join(stackedImagesFolder,imageName.split('_')[0] + ".tif"), stackedImage, planarconfig='contig')
     except:
+        #si il y a une erreur, on supprime les images associees
         for imageName in imagesToStack[0:7]:
             os.remove(os.path.join(resizedImagesFolder,imageName))
 
     
-
+#recuperation des coordonnees du coin de l image calculee
 def getEndpoint(lat1, lon1, d, bearing):
     geod = Geodesic(Constants.WGS84_a, Constants.WGS84_f)
     d = geod.Direct(lat1, lon1, bearing, d)
@@ -392,6 +407,8 @@ def clipImages():
     clipDone = True
     areas = []
     return "ok"
+
+#progression du decoupage des images    
 @app.route('/progress_clip')
 def progress_clip():
     clippedFiles = [f for f in os.listdir(os.path.join(clippedImagesFolder,'images')) if '.tif' in f]
@@ -401,7 +418,7 @@ def progress_clip():
     else :
         return str(int(100 * (len(clippedFiles)/(len(stackedFiles)*16))))
         
-
+#progression de la prediction des images
 @app.route('/progress_predict')
 def progress_predict():
     clippedFiles = [f for f in os.listdir(os.path.join(clippedImagesFolder,'images')) if '.tif' in f]
@@ -409,6 +426,7 @@ def progress_predict():
         return str(int(90 * predictProgress/(len(clippedFiles))))
     else :
         return str(int(100 * predictProgress/(len(clippedFiles))))
+
 #fonction de lecture d'un fichier csv
 def readDataFile(fileName, separator=','):
     pd.set_option("display.precision", 20)
@@ -417,8 +435,6 @@ def readDataFile(fileName, separator=','):
     return dataFile
 
 def getCoords(listSolutions):
-    #current dir
-    #file dir
     dataFile = os.path.join(clippedImagesFolder,'newImagesCoords.csv')
     finalCoords = []
     mergePolygons = []
@@ -477,18 +493,17 @@ def modelPrediction(imageFolder):
                 img = io.imread(os.path.join(imageFolder,p))
             except:
                 print(os.path.join(imageFolder,p))
-
+            # normalisation des images
             if (np.array(img).shape == (IMG_HEIGHT_16,IMG_WIDTH_16,NB_CHANNELS)):
                 Xs.append(img/65535.)
         Xs = np.array(Xs)
         #on recupere les images detectees comme WD
         Y_pred = modelWD.predict(Xs)
-
+        # mise au bon format pour le json
         listSolutions.extend([[i,"WD"] for (i,j) in zip(imageListBatch,Y_pred) if j >= 0.95])
         debut = fin
         predictProgress = fin
         fin = fin + min(1000,len(imageList) - fin)
-    print("fin prediction")
     return listSolutions
 
 if (__name__ == '__main__'):
